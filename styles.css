@@ -112,6 +112,24 @@ h2 {
   margin: 8px 0;
 }
 
+.steps li {
+  padding: 8px 0;
+}
+
+.step-title,
+.step-record {
+  display: block;
+}
+
+.step-title {
+  font-weight: 700;
+}
+
+.step-record {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .site-footer {
   padding: 24px 0;
   border-top: 1px solid var(--line);
