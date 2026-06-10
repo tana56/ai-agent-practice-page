@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --paper: #ffffff;
+  --ink: #1f2328;
+  --muted: #5f666d;
+  --line: #d7d7d2;
+  --accent: #365f5b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", Meiryo, system-ui, sans-serif;
+  line-height: 1.75;
+}
+
+.container {
+  width: min(100% - 32px, 880px);
+  margin: 0 auto;
+}
+
+.site-header {
+  padding: 64px 0 40px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 20px;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+h2 {
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.35rem;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.lead {
+  max-width: 720px;
+  margin-bottom: 28px;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.revision {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.revision div {
+  display: grid;
+  grid-template-columns: 7em 1fr;
+  gap: 16px;
+}
+
+.revision dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.revision dd {
+  margin: 0;
+}
+
+.section {
+  padding: 40px 0;
+}
+
+.section-muted {
+  border-block: 1px solid var(--line);
+  background: #eeeeea;
+}
+
+.steps,
+.policy-list {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.steps li,
+.policy-list li {
+  margin: 8px 0;
+}
+
+.site-footer {
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.site-footer p {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .site-header {
+    padding: 44px 0 32px;
+  }
+
+  .section {
+    padding: 32px 0;
+  }
+
+  .revision div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
