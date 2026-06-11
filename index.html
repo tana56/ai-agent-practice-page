@@ -6,6 +6,7 @@
   <title>AIエージェント学習用ページ</title>
   <meta name="description" content="AIエージェントの学習用に作成した静的Webページです。">
   <link rel="stylesheet" href="styles.css">
+  <script src="counter.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -18,13 +19,21 @@
       <dl class="revision">
         <div>
           <dt>改版日時</dt>
-          <dd><time datetime="2026-06-10T15:27:00+09:00">2026年6月10日 15:27（JST）</time></dd>
+          <dd><time datetime="2026-06-11T09:53:00+09:00">2026年6月11日 09:53（JST）</time></dd>
         </div>
         <div>
           <dt>版</dt>
-          <dd>v0.2.0</dd>
+          <dd>v0.3.0</dd>
         </div>
       </dl>
+      <div class="view-counter" aria-label="このブラウザでの表示回数">
+        <span class="counter-label">LOCAL VIEW COUNTER</span>
+        <span class="counter-display" id="view-count" aria-live="polite">000001</span>
+        <span class="counter-note">このブラウザでの表示回数です</span>
+      </div>
+      <noscript>
+        <p class="counter-note">JavaScriptが無効のため、ビューカウンターは表示できません。</p>
+      </noscript>
     </div>
   </header>
 
@@ -80,6 +89,29 @@
           <li>画像や文章は権利関係が明確なものだけを使う</li>
           <li>APIキー、パスワード、秘密情報を含めない</li>
         </ul>
+      </div>
+    </section>
+
+    <section class="section section-muted">
+      <div class="container">
+        <h2>更新履歴</h2>
+        <dl class="history-list">
+          <div>
+            <dt><time datetime="2026-06-11T09:53:00+09:00">2026年6月11日 09:53（JST）</time></dt>
+            <dd>
+              v0.3.0: ローカルビューカウンターを追加しました。
+              <span class="history-note">サイト全体のアクセス数ではなく、この端末・このブラウザで表示した回数を記録します。</span>
+            </dd>
+          </div>
+          <div>
+            <dt><time datetime="2026-06-10T15:27:00+09:00">2026年6月10日 15:27（JST）</time></dt>
+            <dd>v0.2.0: 学習する流れに実施済み日時を記録しました。</dd>
+          </div>
+          <div>
+            <dt><time datetime="2026-06-10T14:56:00+09:00">2026年6月10日 14:56（JST）</time></dt>
+            <dd>v0.1.0: 初版として学習用ページを作成しました。</dd>
+          </div>
+        </dl>
       </div>
     </section>
   </main>

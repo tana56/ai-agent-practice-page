@@ -92,6 +92,43 @@ h2 {
   margin: 0;
 }
 
+.view-counter {
+  display: inline-grid;
+  gap: 6px;
+  margin-top: 28px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: #f1f1ed;
+}
+
+.counter-label {
+  color: var(--muted);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.counter-display {
+  display: inline-block;
+  min-width: 8ch;
+  padding: 4px 8px;
+  border: 2px inset #c9c9c4;
+  background: #101214;
+  color: #e8ece8;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  text-align: right;
+}
+
+.counter-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .section {
   padding: 40px 0;
 }
@@ -130,6 +167,41 @@ h2 {
   font-size: 0.95rem;
 }
 
+.history-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.history-list div {
+  display: grid;
+  grid-template-columns: minmax(13em, 18em) 1fr;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.history-list div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.history-list dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.history-list dd {
+  margin: 0;
+}
+
+.history-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
 .site-footer {
   padding: 24px 0;
   border-top: 1px solid var(--line);
@@ -153,5 +225,10 @@ h2 {
   .revision div {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .history-list div {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 }
