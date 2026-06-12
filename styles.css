@@ -167,6 +167,33 @@ h2 {
   font-size: 0.95rem;
 }
 
+.work-item h3 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+.work-item p {
+  max-width: 760px;
+}
+
+.work-note {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.text-link {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.text-link:hover {
+  color: var(--ink);
+}
+
 .history-list {
   display: grid;
   gap: 14px;

@@ -1,0 +1,1217 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>進化する尺取り虫シミュレーション</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121414;
+      --panel: rgba(24, 27, 27, 0.9);
+      --panel-2: rgba(35, 39, 39, 0.92);
+      --line: rgba(255,255,255,0.12);
+      --text: #edf1ee;
+      --muted: #a9b4ad;
+      --accent: #7fd57b;
+      --accent-2: #e2b858;
+      --danger: #e06666;
+      --field: #202626;
+      --input: #111616;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      letter-spacing: 0;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      background: radial-gradient(circle at 50% 20%, #1f2725 0%, #111414 60%);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .topbar {
+      position: absolute;
+      left: 16px;
+      top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      z-index: 10;
+      flex-wrap: wrap;
+      max-width: calc(100vw - 32px);
+    }
+
+    .brand {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(12px);
+      white-space: nowrap;
+    }
+
+    .brand b {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 18px rgba(127,213,123,0.7);
+      flex: 0 0 auto;
+    }
+
+    .controls, .stats, .settings {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+    }
+
+    .controls {
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+    }
+
+    button {
+      height: 30px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: #25302d;
+      color: var(--text);
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 650;
+      padding: 0 10px;
+    }
+
+    button:hover { background: #31413c; }
+    button.primary { background: #2d5b36; border-color: rgba(127,213,123,0.35); }
+    button.warn { background: #523333; border-color: rgba(224,102,102,0.4); }
+
+    .speed {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 2px;
+      min-width: 190px;
+    }
+
+    .speed label, .field label {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+      width: 104px;
+    }
+
+    .stats {
+      position: absolute;
+      right: 16px;
+      top: 14px;
+      width: min(330px, calc(100vw - 32px));
+      z-index: 10;
+      padding: 12px;
+    }
+
+    .stats h2, .settings h1 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat {
+      min-height: 58px;
+      padding: 8px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .stat strong {
+      font-size: 18px;
+      font-weight: 760;
+      line-height: 1;
+    }
+
+    .stat.selectable {
+      cursor: pointer;
+    }
+
+    .stat.selectable:hover {
+      border-color: rgba(103,199,232,0.42);
+      background: rgba(103,199,232,0.09);
+    }
+
+    .chart {
+      margin-top: 10px;
+      padding: 9px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px;
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+
+    .chart-head h3 {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .chart-head span {
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .chart-canvas {
+      width: 100%;
+      height: 132px;
+      border-radius: 6px;
+      background: rgba(8,12,12,0.58);
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 8px 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .chart-legend span {
+      white-space: nowrap;
+    }
+
+    .chart-legend i {
+      display: inline-block;
+      width: 17px;
+      height: 3px;
+      border-radius: 3px;
+      margin-right: 5px;
+      vertical-align: 2px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: -1px;
+    }
+
+    .creature-detail {
+      position: absolute;
+      left: 16px;
+      bottom: 62px;
+      z-index: 11;
+      width: min(310px, calc(100vw - 32px));
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.25);
+    }
+
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .detail-head h2 {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .detail-head button {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .detail-item {
+      min-height: 48px;
+      padding: 7px;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px;
+    }
+
+    .detail-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .detail-item strong {
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .settings {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      width: min(760px, calc(100vw - 28px));
+      max-height: calc(100vh - 28px);
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .settings p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      min-height: 76px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+    }
+
+    .field input {
+      width: 100%;
+      height: 34px;
+      margin-top: 7px;
+      border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: var(--input);
+      color: var(--text);
+      padding: 0 9px;
+      font-size: 14px;
+    }
+
+    .field.toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .field.toggle label {
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .field.toggle input {
+      width: 22px;
+      height: 22px;
+      margin: 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .hidden { display: none; }
+
+    .notice {
+      position: absolute;
+      left: 16px;
+      bottom: 14px;
+      z-index: 10;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 8px 10px;
+      max-width: min(520px, calc(100vw - 32px));
+      border: 1px solid var(--line);
+      background: rgba(18,20,20,0.72);
+      border-radius: 8px;
+      backdrop-filter: blur(10px);
+    }
+
+    @media (max-width: 780px) {
+      .stats {
+        left: 16px;
+        right: auto;
+        top: auto;
+        bottom: 14px;
+        width: calc(100vw - 32px);
+      }
+      .creature-detail {
+        bottom: auto;
+        top: 112px;
+      }
+      .notice { display: none; }
+      .settings-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .settings-grid { grid-template-columns: 1fr; }
+      .brand { width: 100%; }
+      .controls { width: 100%; }
+      .speed { min-width: 0; flex: 1; }
+      input[type="range"] { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <div class="brand"><span class="status-dot" id="statusDot"></span><b>進化する尺取り虫</b></div>
+      <div class="controls">
+        <button id="pauseBtn" title="一時停止 / 再開">停止</button>
+        <button id="settingsBtn" title="設定を開く">設定</button>
+        <button class="warn" id="restartBtn" title="現在の設定で再スタート">再スタート</button>
+        <div class="speed">
+          <label for="speedRange">速度</label>
+          <input id="speedRange" type="range" min="0.1" max="8" value="1" step="0.1" />
+          <strong id="speedLabel">1.0x</strong>
+          <button id="normalSpeedBtn" title="進行速度を1.0xに戻す">等速</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="stats">
+      <h2>観察データ</h2>
+      <div class="stat-grid">
+        <div class="stat"><span>生存数</span><strong id="aliveStat">0</strong></div>
+        <div class="stat"><span>餌</span><strong id="foodStat">0</strong></div>
+        <div class="stat"><span>平均速度</span><strong id="speedStat">0</strong></div>
+        <div class="stat selectable" id="fastestStatCard" title="クリックで最速個体を選択"><span>最速個体</span><strong id="topSpeedStat">0</strong></div>
+        <div class="stat"><span>平均旋回性</span><strong id="turnStat">0</strong></div>
+        <div class="stat"><span>平均ランダム旋回</span><strong id="wanderStat">0</strong></div>
+        <div class="stat"><span>休止中</span><strong id="restingStat">0</strong></div>
+        <div class="stat"><span>平均休止傾向</span><strong id="restGeneStat">0</strong></div>
+        <div class="stat"><span>出生 / 死亡</span><strong id="birthDeathStat">0 / 0</strong></div>
+        <div class="stat"><span>最高スコア個体</span><strong id="bestStat">0</strong></div>
+        <div class="stat"><span>経過時間</span><strong id="timeStat">0s</strong></div>
+      </div>
+      <div class="chart">
+        <div class="chart-head">
+          <h3>時系列グラフ</h3>
+          <span>直近の変化</span>
+        </div>
+        <canvas class="chart-canvas" id="chartCanvas" width="612" height="264"></canvas>
+        <div class="chart-legend">
+          <span><i style="background:#7fd57b"></i>生存数</span>
+          <span><i style="background:#e2b858"></i>餌</span>
+          <span><i style="background:#67c7e8"></i>速度</span>
+          <span><i style="background:#d58beb"></i>旋回</span>
+          <span><i style="background:#e6906f"></i>ランダム</span>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#7fd57b"></i>体力が高い個体</span>
+        <span><i style="background:#e2b858"></i>餌</span>
+        <span><i style="background:#e06666"></i>衰弱した個体</span>
+      </div>
+    </aside>
+
+    <aside class="creature-detail hidden" id="creatureDetail">
+      <div class="detail-head">
+        <h2>選択個体</h2>
+        <button id="clearSelectionBtn" title="選択解除">×</button>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item"><span>速度</span><strong id="detailSpeed">0</strong></div>
+        <div class="detail-item"><span>伸縮周期</span><strong id="detailPeriod">0</strong></div>
+        <div class="detail-item"><span>伸縮の強さ</span><strong id="detailStrength">0</strong></div>
+        <div class="detail-item"><span>曲がりやすさ</span><strong id="detailTurn">0</strong></div>
+        <div class="detail-item"><span>ランダム旋回</span><strong id="detailWander">0</strong></div>
+        <div class="detail-item"><span>休止傾向</span><strong id="detailRest">0</strong></div>
+        <div class="detail-item"><span>体力</span><strong id="detailEnergy">0</strong></div>
+        <div class="detail-item"><span>餌 / 年齢</span><strong id="detailFoodAge">0 / 0s</strong></div>
+        <div class="detail-item"><span>移動距離</span><strong id="detailDistance">0</strong></div>
+        <div class="detail-item"><span>スコア</span><strong id="detailScore">0</strong></div>
+      </div>
+    </aside>
+
+    <section class="settings" id="settingsPanel">
+      <h1>初期パラメータ</h1>
+      <p>餌の感知は切り替え可能です。伸縮周期、伸縮の強さ、曲がりやすさ、ランダム旋回頻度、休止傾向が継承され、出現時に少し変異します。</p>
+      <div class="settings-grid">
+        <div class="field"><label>スタート時の生物数</label><input id="initialCreatures" type="number" min="1" max="600" value="95" /></div>
+        <div class="field"><label>初期体力</label><input id="initialEnergy" type="number" min="5" max="500" value="90" /></div>
+        <div class="field"><label>餌の数</label><input id="initialFood" type="number" min="0" max="900" value="150" /></div>
+        <div class="field"><label>餌の再出現数</label><input id="foodRespawnCount" type="number" min="0" max="100" value="12" /></div>
+        <div class="field"><label>再出現までの時間 秒</label><input id="respawnInterval" type="number" min="0.2" max="60" step="0.1" value="2.8" /></div>
+        <div class="field"><label>世界サイズ</label><input id="worldSize" type="number" min="20" max="180" value="76" /></div>
+        <div class="field"><label>突然変異率</label><input id="mutationRate" type="number" min="0" max="1" step="0.01" value="0.13" /></div>
+        <div class="field"><label>シミュレーション速度</label><input id="initialTimeScale" type="number" min="0.1" max="8" step="0.1" value="1" /></div>
+        <div class="field"><label>最大生物数</label><input id="maxCreatures" type="number" min="1" max="900" value="150" /></div>
+        <div class="field"><label>餌の感知距離</label><input id="foodSenseRange" type="number" min="1" max="80" step="0.5" value="14" /></div>
+        <div class="field toggle"><label for="foodSense">餌の感知</label><input id="foodSense" type="checkbox" /></div>
+      </div>
+      <div class="actions">
+        <button id="closeSettingsBtn">閉じる</button>
+        <button class="primary" id="startBtn">開始</button>
+      </div>
+    </section>
+
+    <div class="notice">壁で跳ね返る小さな尺取り虫たちを斜め上から観察します。餌の感知を切り替えると、偶然の探索と餌へ向かう探索を比較できます。</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://unpkg.com/three@0.165.0/build/three.module.js";
+
+    const el = (id) => document.getElementById(id);
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+    const params = {
+      initialCreatures: 95,
+      initialEnergy: 90,
+      initialFood: 150,
+      foodRespawnCount: 12,
+      respawnInterval: 2.8,
+      worldSize: 76,
+      mutationRate: 0.13,
+      initialTimeScale: 1,
+      maxCreatures: 150,
+      foodSenseRange: 14,
+      foodSense: false
+    };
+
+    let scene, camera, renderer, worldGroup, creatureGroup, foodGroup, wallMesh, groundMesh;
+    let creatures = [];
+    let foods = [];
+    let paused = false;
+    let timeScale = 1;
+    let simTime = 0;
+    let foodSpawnClock = 0;
+    let creatureSpawnClock = 0;
+    let births = 0;
+    let deaths = 0;
+    let bestEver = 0;
+    let animationStarted = false;
+    let lastTime = performance.now();
+    let graphHistory = [];
+    let lastGraphSample = -1;
+    let selectedCreature = null;
+    let fastestCreature = null;
+    let selectionRing = null;
+    const graphMaxSamples = 180;
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    const ui = {
+      pauseBtn: el("pauseBtn"),
+      settingsBtn: el("settingsBtn"),
+      restartBtn: el("restartBtn"),
+      speedRange: el("speedRange"),
+      speedLabel: el("speedLabel"),
+      settingsPanel: el("settingsPanel"),
+      statusDot: el("statusDot"),
+      aliveStat: el("aliveStat"),
+      foodStat: el("foodStat"),
+      speedStat: el("speedStat"),
+      topSpeedStat: el("topSpeedStat"),
+      turnStat: el("turnStat"),
+      wanderStat: el("wanderStat"),
+      restingStat: el("restingStat"),
+      restGeneStat: el("restGeneStat"),
+      birthDeathStat: el("birthDeathStat"),
+      bestStat: el("bestStat"),
+      timeStat: el("timeStat"),
+      chartCanvas: el("chartCanvas"),
+      creatureDetail: el("creatureDetail"),
+      detailSpeed: el("detailSpeed"),
+      detailPeriod: el("detailPeriod"),
+      detailStrength: el("detailStrength"),
+      detailTurn: el("detailTurn"),
+      detailWander: el("detailWander"),
+      detailRest: el("detailRest"),
+      detailEnergy: el("detailEnergy"),
+      detailFoodAge: el("detailFoodAge"),
+      detailDistance: el("detailDistance"),
+      detailScore: el("detailScore")
+    };
+
+    const inputIds = Object.keys(params);
+
+    function readSettings() {
+      inputIds.forEach((id) => {
+        const input = el(id);
+        if (input.type === "checkbox") {
+          params[id] = input.checked;
+          return;
+        }
+        const value = Number(input.value);
+        if (Number.isFinite(value)) params[id] = value;
+      });
+      params.initialCreatures = Math.floor(clamp(params.initialCreatures, 1, 600));
+      params.initialFood = Math.floor(clamp(params.initialFood, 0, 900));
+      params.foodRespawnCount = Math.floor(clamp(params.foodRespawnCount, 0, 100));
+      params.maxCreatures = Math.floor(clamp(params.maxCreatures, 1, 900));
+      params.worldSize = clamp(params.worldSize, 20, 180);
+      params.mutationRate = clamp(params.mutationRate, 0, 1);
+      params.initialEnergy = clamp(params.initialEnergy, 5, 500);
+      params.respawnInterval = clamp(params.respawnInterval, 0.2, 60);
+      params.initialTimeScale = clamp(params.initialTimeScale, 0.1, 8);
+      params.foodSenseRange = clamp(params.foodSenseRange, 1, 80);
+      timeScale = params.initialTimeScale;
+      ui.speedRange.value = String(timeScale);
+      ui.speedLabel.textContent = `${timeScale.toFixed(1)}x`;
+    }
+
+    function initThree() {
+      scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x121414, 72, 155);
+
+      camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 500);
+      camera.position.set(0, 58, 72);
+      camera.lookAt(0, 0, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor(0x111414, 1);
+      el("app").prepend(renderer.domElement);
+
+      worldGroup = new THREE.Group();
+      creatureGroup = new THREE.Group();
+      foodGroup = new THREE.Group();
+      scene.add(worldGroup, creatureGroup, foodGroup);
+
+      const ringGeo = new THREE.RingGeometry(1.05, 1.34, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x67c7e8,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide
+      });
+      selectionRing = new THREE.Mesh(ringGeo, ringMat);
+      selectionRing.rotation.x = -Math.PI / 2;
+      selectionRing.position.y = 0.08;
+      selectionRing.visible = false;
+      scene.add(selectionRing);
+
+      const hemi = new THREE.HemisphereLight(0xeaf7ee, 0x38413b, 2.2);
+      scene.add(hemi);
+      const sun = new THREE.DirectionalLight(0xffffff, 2.6);
+      sun.position.set(-22, 45, 20);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.camera.near = 1;
+      sun.shadow.camera.far = 120;
+      sun.shadow.camera.left = -70;
+      sun.shadow.camera.right = 70;
+      sun.shadow.camera.top = 70;
+      sun.shadow.camera.bottom = -70;
+      scene.add(sun);
+
+      addWorldMeshes();
+      renderer.domElement.addEventListener("pointerdown", selectCreatureAtPointer);
+      addResizeHandler();
+    }
+
+    function addWorldMeshes() {
+      const size = params.worldSize;
+      if (groundMesh) worldGroup.remove(groundMesh);
+      if (wallMesh) worldGroup.remove(wallMesh);
+
+      const groundGeo = new THREE.PlaneGeometry(size, size, 48, 48);
+      const colors = [];
+      const colorA = new THREE.Color(0x1e2b26);
+      const colorB = new THREE.Color(0x273832);
+      for (let i = 0; i < groundGeo.attributes.position.count; i++) {
+        const x = groundGeo.attributes.position.getX(i);
+        const y = groundGeo.attributes.position.getY(i);
+        const mixed = colorA.clone().lerp(colorB, (Math.sin(x * 0.37) + Math.cos(y * 0.41) + 2) / 4);
+        colors.push(mixed.r, mixed.g, mixed.b);
+      }
+      groundGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+      const groundMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+      groundMesh = new THREE.Mesh(groundGeo, groundMat);
+      groundMesh.rotation.x = -Math.PI / 2;
+      groundMesh.receiveShadow = true;
+      worldGroup.add(groundMesh);
+
+      const wallShape = new THREE.Shape();
+      const h = size / 2;
+      wallShape.moveTo(-h, -h);
+      wallShape.lineTo(h, -h);
+      wallShape.lineTo(h, h);
+      wallShape.lineTo(-h, h);
+      wallShape.lineTo(-h, -h);
+      const wallGeo = new THREE.BufferGeometry().setFromPoints(wallShape.getPoints());
+      const wallMat = new THREE.LineBasicMaterial({ color: 0x96b09e, transparent: true, opacity: 0.65 });
+      wallMesh = new THREE.Line(wallGeo, wallMat);
+      wallMesh.rotation.x = -Math.PI / 2;
+      wallMesh.position.y = 0.05;
+      worldGroup.add(wallMesh);
+    }
+
+    function addResizeHandler() {
+      addEventListener("resize", () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+    }
+
+    function geneRandom() {
+      return {
+        period: rand(0.65, 2.2),
+        strength: rand(0.35, 1.55),
+        turn: rand(0.3, 2.8),
+        wander: rand(0.15, 2.8),
+        rest: rand(0.02, 0.42)
+      };
+    }
+
+    function mutateGene(base) {
+      const m = params.mutationRate;
+      return {
+        period: clamp(base.period + rand(-0.55, 0.55) * m * 2, 0.35, 3.0),
+        strength: clamp(base.strength + rand(-0.55, 0.55) * m * 2, 0.1, 2.3),
+        turn: clamp(base.turn + rand(-0.95, 0.95) * m * 2, 0.05, 4.2),
+        wander: clamp(base.wander + rand(-0.95, 0.95) * m * 2, 0.02, 4.2),
+        rest: clamp((base.rest ?? 0.12) + rand(-0.25, 0.25) * m * 2, 0, 0.85)
+      };
+    }
+
+    function makeCreatureMesh(color) {
+      const group = new THREE.Group();
+      const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.02 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x162019, roughness: 0.7 });
+      const segmentGeo = new THREE.SphereGeometry(0.62, 16, 12);
+      const headGeo = new THREE.SphereGeometry(0.72, 16, 12);
+      const eyeGeo = new THREE.SphereGeometry(0.08, 8, 6);
+      const segments = [];
+      for (let i = 0; i < 5; i++) {
+        const mesh = new THREE.Mesh(i === 0 ? headGeo : segmentGeo, bodyMat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+        segments.push(mesh);
+      }
+      const eyeL = new THREE.Mesh(eyeGeo, darkMat);
+      const eyeR = new THREE.Mesh(eyeGeo, darkMat);
+      group.add(eyeL, eyeR);
+      group.userData = { segments, eyeL, eyeR };
+      return group;
+    }
+
+    function creatureColor(energyRatio) {
+      const weak = new THREE.Color(0xe06666);
+      const healthy = new THREE.Color(0x7fd57b);
+      return weak.lerp(healthy, clamp(energyRatio, 0, 1));
+    }
+
+    function spawnCreature(inheritedGene = null) {
+      const h = params.worldSize / 2 - 2;
+      const gene = inheritedGene ? mutateGene(inheritedGene) : geneRandom();
+      const energy = params.initialEnergy * rand(0.75, 1.25);
+      const creature = {
+        x: rand(-h, h),
+        z: rand(-h, h),
+        heading: rand(0, Math.PI * 2),
+        phase: rand(0, Math.PI * 2),
+        gene,
+        energy,
+        maxEnergy: params.initialEnergy * 1.7,
+        eaten: 0,
+        age: 0,
+        distance: 0,
+        resting: 0,
+        score: 0,
+        mesh: makeCreatureMesh(creatureColor(0.8))
+      };
+      creature.mesh.userData.creature = creature;
+      creature.mesh.traverse((object) => {
+        object.userData.creature = creature;
+      });
+      creatureGroup.add(creature.mesh);
+      creatures.push(creature);
+      births++;
+    }
+
+    function spawnFood(count = 1) {
+      const h = params.worldSize / 2 - 1.6;
+      const geo = new THREE.IcosahedronGeometry(0.36, 1);
+      for (let i = 0; i < count; i++) {
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0xe2b858,
+          emissive: 0x332100,
+          roughness: 0.45
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(rand(-h, h), 0.45, rand(-h, h));
+        mesh.castShadow = true;
+        foodGroup.add(mesh);
+        foods.push({ x: mesh.position.x, z: mesh.position.z, mesh });
+      }
+    }
+
+    function clearWorld() {
+      creatures.forEach((c) => creatureGroup.remove(c.mesh));
+      foods.forEach((f) => foodGroup.remove(f.mesh));
+      creatures = [];
+      foods = [];
+      births = 0;
+      deaths = 0;
+      bestEver = 0;
+      simTime = 0;
+      foodSpawnClock = 0;
+      creatureSpawnClock = 0;
+      graphHistory = [];
+      lastGraphSample = -1;
+      fastestCreature = null;
+      clearSelection();
+    }
+
+    function startSimulation() {
+      readSettings();
+      addWorldMeshes();
+      clearWorld();
+      const creatureCount = Math.min(params.initialCreatures, params.maxCreatures);
+      for (let i = 0; i < creatureCount; i++) spawnCreature();
+      spawnFood(params.initialFood);
+      paused = false;
+      ui.pauseBtn.textContent = "停止";
+      ui.statusDot.style.background = "var(--accent)";
+      ui.settingsPanel.classList.add("hidden");
+      if (!animationStarted) {
+        animationStarted = true;
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function removeCreature(index) {
+      const creature = creatures[index];
+      if (selectedCreature === creature) clearSelection();
+      creatureGroup.remove(creature.mesh);
+      creatures.splice(index, 1);
+      deaths++;
+    }
+
+    function clearSelection() {
+      selectedCreature = null;
+      if (selectionRing) selectionRing.visible = false;
+      ui.creatureDetail.classList.add("hidden");
+    }
+
+    function selectCreature(creature) {
+      selectedCreature = creature;
+      ui.creatureDetail.classList.remove("hidden");
+      updateCreatureDetail();
+    }
+
+    function selectCreatureAtPointer(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(creatureGroup.children, true);
+      if (hits.length === 0) return;
+      const creature = hits[0].object.userData.creature;
+      if (creature) selectCreature(creature);
+    }
+
+    function updateCreatureDetail() {
+      const c = selectedCreature;
+      if (!c || !creatures.includes(c)) {
+        clearSelection();
+        return;
+      }
+      const speedGene = c.gene.strength / c.gene.period;
+      const energyRatio = clamp(c.energy / c.maxEnergy, 0, 1);
+      ui.detailSpeed.textContent = speedGene.toFixed(2);
+      ui.detailPeriod.textContent = c.gene.period.toFixed(2);
+      ui.detailStrength.textContent = c.gene.strength.toFixed(2);
+      ui.detailTurn.textContent = c.gene.turn.toFixed(2);
+      ui.detailWander.textContent = c.gene.wander.toFixed(2);
+      ui.detailRest.textContent = c.gene.rest.toFixed(2);
+      ui.detailEnergy.textContent = `${Math.round(c.energy)} (${Math.round(energyRatio * 100)}%)`;
+      ui.detailFoodAge.textContent = `${c.eaten} / ${Math.floor(c.age)}s`;
+      ui.detailDistance.textContent = c.distance.toFixed(1);
+      ui.detailScore.textContent = c.score.toFixed(1);
+      selectionRing.visible = true;
+      selectionRing.position.x = c.x;
+      selectionRing.position.z = c.z;
+    }
+
+    function angleDelta(target, current) {
+      return Math.atan2(Math.sin(target - current), Math.cos(target - current));
+    }
+
+    function nearestVisibleFood(c) {
+      if (!params.foodSense || foods.length === 0) return null;
+      const senseRange = params.foodSenseRange;
+      const maxDistanceSq = senseRange * senseRange;
+      let nearest = null;
+      let nearestDistanceSq = maxDistanceSq;
+      for (const f of foods) {
+        const dx = f.x - c.x;
+        const dz = f.z - c.z;
+        const distanceSq = dx * dx + dz * dz;
+        if (distanceSq < nearestDistanceSq) {
+          nearest = f;
+          nearestDistanceSq = distanceSq;
+        }
+      }
+      return nearest;
+    }
+
+    function inheritGene() {
+      if (creatures.length === 0) return null;
+      return pick(creatures).gene;
+    }
+
+    function updateCreature(c, dt) {
+      c.age += dt;
+      if (c.resting > 0) {
+        c.resting = Math.max(0, c.resting - dt);
+      } else if (Math.random() < c.gene.rest * dt) {
+        c.resting = rand(0.45, 2.2);
+      }
+
+      const isResting = c.resting > 0;
+      let move = 0;
+      let pulse = 0.12;
+      let contraction = 0;
+
+      if (!isResting) {
+        c.phase += dt * (Math.PI * 2) / c.gene.period;
+        pulse = (Math.sin(c.phase) + 1) / 2;
+        contraction = Math.sin(c.phase) * c.gene.strength;
+        const wobble = Math.sin(c.phase * 0.5 + c.gene.turn) * 0.18 * c.gene.turn;
+        const randomTurn = (Math.random() - 0.5) * c.gene.wander * dt;
+        const visibleFood = nearestVisibleFood(c);
+        if (visibleFood) {
+          const desiredHeading = Math.atan2(visibleFood.z - c.z, visibleFood.x - c.x);
+          const maxSteer = c.gene.turn * 1.85 * dt;
+          c.heading += clamp(angleDelta(desiredHeading, c.heading), -maxSteer, maxSteer);
+        }
+        c.heading += wobble * dt + randomTurn;
+
+        const stepPower = Math.max(0, Math.sin(c.phase)) * c.gene.strength;
+        const speed = stepPower * 5.2;
+        move = speed * dt;
+      }
+
+      c.x += Math.cos(c.heading) * move;
+      c.z += Math.sin(c.heading) * move;
+      c.distance += move;
+
+      const h = params.worldSize / 2 - 1.1;
+      if (c.x < -h || c.x > h) {
+        c.x = clamp(c.x, -h, h);
+        c.heading = Math.PI - c.heading + rand(-0.22, 0.22);
+      }
+      if (c.z < -h || c.z > h) {
+        c.z = clamp(c.z, -h, h);
+        c.heading = -c.heading + rand(-0.22, 0.22);
+      }
+
+      const baseDrain = 1.0 * dt;
+      const activeDrain = move > 0.001 ? 0.42 * dt : 0;
+      c.energy -= baseDrain + activeDrain;
+      c.score = c.eaten * 10 + c.age * 0.08 + c.distance * 0.03;
+      bestEver = Math.max(bestEver, c.score);
+
+      for (let i = foods.length - 1; i >= 0; i--) {
+        const f = foods[i];
+        const dx = f.x - c.x;
+        const dz = f.z - c.z;
+        if (dx * dx + dz * dz < 3.6) {
+          c.energy = clamp(c.energy + params.initialEnergy * 0.38, 0, c.maxEnergy);
+          c.eaten++;
+          foodGroup.remove(f.mesh);
+          foods.splice(i, 1);
+        }
+      }
+
+      updateCreatureMesh(c, pulse, contraction);
+    }
+
+    function updateCreatureMesh(c, pulse, contraction) {
+      const { segments, eyeL, eyeR } = c.mesh.userData;
+      const dir = new THREE.Vector3(Math.cos(c.heading), 0, Math.sin(c.heading));
+      const side = new THREE.Vector3(-dir.z, 0, dir.x);
+      const spacing = 0.55 + pulse * 0.33 + c.gene.strength * 0.16;
+      const arch = 0.42 + Math.max(0, contraction) * 0.42;
+      const ratio = clamp(c.energy / c.maxEnergy, 0, 1);
+      const color = creatureColor(ratio);
+
+      c.mesh.position.set(c.x, 0, c.z);
+      c.mesh.rotation.y = -c.heading;
+      segments.forEach((seg, i) => {
+        const offset = i * spacing;
+        const wave = Math.sin(c.phase - i * 0.7);
+        seg.position.set(-offset, 0.55 + Math.max(0, wave) * arch, Math.sin(i * 1.7 + c.phase) * 0.08 * c.gene.turn);
+        const scaleY = i === 0 ? 1.0 : 0.85 + Math.max(0, wave) * 0.38;
+        seg.scale.set(1.0 + pulse * 0.08, scaleY, 1.0);
+        seg.material.color.copy(color);
+      });
+      eyeL.position.copy(segments[0].position).add(dir.clone().multiplyScalar(0.48)).add(side.clone().multiplyScalar(0.21)).add(new THREE.Vector3(0, 0.16, 0));
+      eyeR.position.copy(segments[0].position).add(dir.clone().multiplyScalar(0.48)).add(side.clone().multiplyScalar(-0.21)).add(new THREE.Vector3(0, 0.16, 0));
+    }
+
+    function update(dt) {
+      simTime += dt;
+      foodSpawnClock += dt;
+      creatureSpawnClock += dt;
+
+      for (let i = creatures.length - 1; i >= 0; i--) {
+        updateCreature(creatures[i], dt);
+        if (creatures[i].energy <= 0) removeCreature(i);
+      }
+
+      if (foodSpawnClock >= params.respawnInterval) {
+        foodSpawnClock = 0;
+        const foodRoom = Math.max(0, params.initialFood * 2 - foods.length);
+        spawnFood(Math.min(params.foodRespawnCount, foodRoom));
+      }
+
+      const targetCreatures = Math.min(params.maxCreatures, Math.max(params.initialCreatures, Math.floor(params.maxCreatures * 0.65)));
+      if (creatureSpawnClock >= params.respawnInterval * 1.25 && creatures.length < targetCreatures) {
+        creatureSpawnClock = 0;
+        const spawnCount = Math.min(4, targetCreatures - creatures.length);
+        for (let i = 0; i < spawnCount; i++) spawnCreature(inheritGene());
+      }
+    }
+
+    function sampleGraph(stats) {
+      if (simTime - lastGraphSample < 0.5) return;
+      lastGraphSample = simTime;
+      graphHistory.push({
+        t: simTime,
+        alive: creatures.length,
+        food: foods.length,
+        speed: stats.avgSpeedGene,
+        turn: stats.avgTurn,
+        wander: stats.avgWander
+      });
+      if (graphHistory.length > graphMaxSamples) graphHistory.shift();
+    }
+
+    function drawGraph() {
+      const canvas = ui.chartCanvas;
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      const pad = { left: 30, right: 10, top: 12, bottom: 24 };
+      const plotW = width - pad.left - pad.right;
+      const plotH = height - pad.top - pad.bottom;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(8,12,12,0.58)";
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.top + plotH * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(width - pad.right, y);
+        ctx.stroke();
+      }
+
+      if (graphHistory.length < 2) {
+        ctx.fillStyle = "rgba(237,241,238,0.55)";
+        ctx.font = "22px Segoe UI, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("waiting for data", width / 2, height / 2 + 8);
+        return;
+      }
+
+      const maxAlive = Math.max(params.maxCreatures, params.initialCreatures, 1);
+      const maxFood = Math.max(params.initialFood * 2, 1);
+      const series = [
+        { key: "alive", color: "#7fd57b", max: maxAlive },
+        { key: "food", color: "#e2b858", max: maxFood },
+        { key: "speed", color: "#67c7e8", max: 3.2 },
+        { key: "turn", color: "#d58beb", max: 4.2 },
+        { key: "wander", color: "#e6906f", max: 4.2 }
+      ];
+
+      const xAt = (i) => pad.left + (i / (graphHistory.length - 1)) * plotW;
+      for (const s of series) {
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.92;
+        ctx.beginPath();
+        graphHistory.forEach((point, i) => {
+          const value = clamp(point[s.key] / s.max, 0, 1);
+          const x = xAt(i);
+          const y = pad.top + (1 - value) * plotH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      const first = graphHistory[0].t;
+      const last = graphHistory[graphHistory.length - 1].t;
+      ctx.fillStyle = "rgba(237,241,238,0.52)";
+      ctx.font = "18px Segoe UI, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText(`${Math.floor(first)}s`, pad.left, height - 7);
+      ctx.textAlign = "right";
+      ctx.fillText(`${Math.floor(last)}s`, width - pad.right, height - 7);
+    }
+
+    function updateStats() {
+      const n = creatures.length || 1;
+      const avgStrength = creatures.reduce((sum, c) => sum + c.gene.strength, 0) / n;
+      const avgPeriod = creatures.reduce((sum, c) => sum + c.gene.period, 0) / n;
+      const avgSpeedGene = avgStrength / avgPeriod;
+      fastestCreature = null;
+      const fastestSpeedGene = creatures.reduce((best, c) => {
+        const speedGene = c.gene.strength / c.gene.period;
+        if (speedGene > best) {
+          fastestCreature = c;
+          return speedGene;
+        }
+        return best;
+      }, 0);
+      const avgTurn = creatures.reduce((sum, c) => sum + c.gene.turn, 0) / n;
+      const avgWander = creatures.reduce((sum, c) => sum + c.gene.wander, 0) / n;
+      const avgRest = creatures.reduce((sum, c) => sum + c.gene.rest, 0) / n;
+      const restingCount = creatures.reduce((sum, c) => sum + (c.resting > 0 ? 1 : 0), 0);
+      ui.aliveStat.textContent = String(creatures.length);
+      ui.foodStat.textContent = String(foods.length);
+      ui.speedStat.textContent = avgSpeedGene.toFixed(2);
+      ui.topSpeedStat.textContent = fastestSpeedGene.toFixed(2);
+      ui.turnStat.textContent = avgTurn.toFixed(2);
+      ui.wanderStat.textContent = avgWander.toFixed(2);
+      ui.restingStat.textContent = String(restingCount);
+      ui.restGeneStat.textContent = avgRest.toFixed(2);
+      ui.birthDeathStat.textContent = `${births} / ${deaths}`;
+      ui.bestStat.textContent = bestEver.toFixed(1);
+      ui.timeStat.textContent = `${Math.floor(simTime)}s`;
+      sampleGraph({ avgSpeedGene, avgTurn, avgWander });
+      drawGraph();
+    }
+
+    function loop(now) {
+      const frameDt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      if (!paused) update(frameDt * timeScale);
+      updateStats();
+      updateCreatureDetail();
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+
+    ui.pauseBtn.addEventListener("click", () => {
+      paused = !paused;
+      ui.pauseBtn.textContent = paused ? "再開" : "停止";
+      ui.statusDot.style.background = paused ? "var(--accent-2)" : "var(--accent)";
+    });
+
+    ui.settingsBtn.addEventListener("click", () => ui.settingsPanel.classList.remove("hidden"));
+    el("closeSettingsBtn").addEventListener("click", () => ui.settingsPanel.classList.add("hidden"));
+    el("startBtn").addEventListener("click", startSimulation);
+    ui.restartBtn.addEventListener("click", startSimulation);
+    el("clearSelectionBtn").addEventListener("click", clearSelection);
+    el("fastestStatCard").addEventListener("click", () => {
+      if (fastestCreature && creatures.includes(fastestCreature)) selectCreature(fastestCreature);
+    });
+    ui.speedRange.addEventListener("input", () => {
+      timeScale = Number(ui.speedRange.value);
+      ui.speedLabel.textContent = `${timeScale.toFixed(1)}x`;
+    });
+    el("normalSpeedBtn").addEventListener("click", () => {
+      timeScale = 1;
+      ui.speedRange.value = "1";
+      ui.speedLabel.textContent = "1.0x";
+    });
+
+    initThree();
+    updateStats();
+  </script>
+</body>
+</html>
