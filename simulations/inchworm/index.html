@@ -460,6 +460,8 @@
       <div class="stat-grid">
         <div class="stat"><span>生存数</span><strong id="aliveStat">0</strong></div>
         <div class="stat"><span>餌</span><strong id="foodStat">0</strong></div>
+        <div class="stat"><span>追加餌</span><strong id="respawnStat">0</strong></div>
+        <div class="stat"><span>次の餌</span><strong id="nextFoodStat">0s</strong></div>
         <div class="stat"><span>平均速度</span><strong id="speedStat">0</strong></div>
         <div class="stat selectable" id="fastestStatCard" title="クリックで最速個体を選択"><span>最速個体</span><strong id="topSpeedStat">0</strong></div>
         <div class="stat"><span>平均旋回性</span><strong id="turnStat">0</strong></div>
@@ -568,6 +570,8 @@
     let creatureSpawnClock = 0;
     let births = 0;
     let deaths = 0;
+    let respawnedFood = 0;
+    let lastRespawnAmount = 0;
     let bestEver = 0;
     let animationStarted = false;
     let lastTime = performance.now();
@@ -590,6 +594,8 @@
       statusDot: el("statusDot"),
       aliveStat: el("aliveStat"),
       foodStat: el("foodStat"),
+      respawnStat: el("respawnStat"),
+      nextFoodStat: el("nextFoodStat"),
       speedStat: el("speedStat"),
       topSpeedStat: el("topSpeedStat"),
       turnStat: el("turnStat"),
@@ -815,9 +821,10 @@
       births++;
     }
 
-    function spawnFood(count = 1) {
+    function spawnFood(count = 1, isRespawn = false) {
       const h = params.worldSize / 2 - 1.6;
       const geo = new THREE.IcosahedronGeometry(0.36, 1);
+      let spawned = 0;
       for (let i = 0; i < count; i++) {
         const mat = new THREE.MeshStandardMaterial({
           color: 0xe2b858,
@@ -827,9 +834,13 @@
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(rand(-h, h), 0.45, rand(-h, h));
         mesh.castShadow = true;
+        mesh.userData.bornAt = simTime;
+        mesh.userData.isRespawn = isRespawn;
         foodGroup.add(mesh);
-        foods.push({ x: mesh.position.x, z: mesh.position.z, mesh });
+        foods.push({ x: mesh.position.x, z: mesh.position.z, mesh, bornAt: simTime, isRespawn });
+        spawned++;
       }
+      return spawned;
     }
 
     function clearWorld() {
@@ -839,6 +850,8 @@
       foods = [];
       births = 0;
       deaths = 0;
+      respawnedFood = 0;
+      lastRespawnAmount = 0;
       bestEver = 0;
       simTime = 0;
       foodSpawnClock = 0;
@@ -855,7 +868,7 @@
       clearWorld();
       const creatureCount = Math.min(params.initialCreatures, params.maxCreatures);
       for (let i = 0; i < creatureCount; i++) spawnCreature();
-      spawnFood(params.initialFood);
+      spawnFood(params.initialFood, false);
       paused = false;
       ui.pauseBtn.textContent = "停止";
       ui.statusDot.style.background = "var(--accent)";
@@ -1048,10 +1061,14 @@
         if (creatures[i].energy <= 0) removeCreature(i);
       }
 
-      if (foodSpawnClock >= params.respawnInterval) {
-        foodSpawnClock = 0;
+      while (foodSpawnClock >= params.respawnInterval) {
+        foodSpawnClock -= params.respawnInterval;
         const foodRoom = Math.max(0, params.initialFood * 2 - foods.length);
-        spawnFood(Math.min(params.foodRespawnCount, foodRoom));
+        const spawned = spawnFood(Math.min(params.foodRespawnCount, foodRoom), true);
+        if (spawned > 0) {
+          respawnedFood += spawned;
+          lastRespawnAmount = spawned;
+        }
       }
 
       const targetCreatures = Math.min(params.maxCreatures, Math.max(params.initialCreatures, Math.floor(params.maxCreatures * 0.65)));
@@ -1163,6 +1180,8 @@
       const restingCount = creatures.reduce((sum, c) => sum + (c.resting > 0 ? 1 : 0), 0);
       ui.aliveStat.textContent = String(creatures.length);
       ui.foodStat.textContent = String(foods.length);
+      ui.respawnStat.textContent = `${respawnedFood} (+${lastRespawnAmount})`;
+      ui.nextFoodStat.textContent = `${Math.max(0, params.respawnInterval - foodSpawnClock).toFixed(1)}s`;
       ui.speedStat.textContent = avgSpeedGene.toFixed(2);
       ui.topSpeedStat.textContent = fastestSpeedGene.toFixed(2);
       ui.turnStat.textContent = avgTurn.toFixed(2);
@@ -1180,10 +1199,25 @@
       const frameDt = Math.min(0.05, (now - lastTime) / 1000);
       lastTime = now;
       if (!paused) update(frameDt * timeScale);
+      updateFoodVisuals();
       updateStats();
       updateCreatureDetail();
       renderer.render(scene, camera);
       requestAnimationFrame(loop);
+    }
+
+    function updateFoodVisuals() {
+      for (const f of foods) {
+        const age = simTime - f.bornAt;
+        if (f.isRespawn && age < 2.4) {
+          const pulse = 1 + Math.sin(age * 16) * 0.18 + (1 - age / 2.4) * 0.45;
+          f.mesh.scale.setScalar(Math.max(1, pulse));
+          f.mesh.material.emissive.setHex(0x5a3900);
+        } else {
+          f.mesh.scale.setScalar(1);
+          f.mesh.material.emissive.setHex(0x332100);
+        }
+      }
     }
 
     ui.pauseBtn.addEventListener("click", () => {
